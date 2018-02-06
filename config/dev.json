@@ -1,0 +1,24 @@
+{
+  "rethinkDBConnection" : {
+    "host": "localhost",
+    "port": 28015,
+    "db": "FlowzDBETL",
+    "table":"uploader",
+    "vshopdb": "feather_product",
+    "vshoptable":"vshopdata"
+  },
+  "pino": {
+    "timestamp": false,
+    "prettyPrint": {
+      "forceColor": true
+    }
+  },
+  "mongoDBConnection": {
+    "URL": "mongodb://localhost:27001/pdmuploader"
+  },
+  "ESConnection": {
+    "host": "localhost",
+    "port": "9600",
+    "auth": "elastic:changeme"
+  }
+}
