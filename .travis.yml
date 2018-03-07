@@ -9,6 +9,7 @@ branches:
   only:
   - master
   - develop
+  - staging
   - QA
 
 
@@ -29,6 +30,14 @@ jobs:
             docker images;
             docker tag worker_uploader_import_completed:dev $DOCKER_USERNAME/worker_uploader_import_completed:dev;
             docker push $DOCKER_USERNAME/worker_uploader_import_completed:dev;
+        elif [ ${TRAVIS_BRANCH} = "staging" ]; then
+            docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD";
+            docker build -t worker_uploader_import_completed:$TRAVIS_BRANCH-$TRAVIS_BUILD_NUMBER .;
+            docker tag worker_uploader_import_completed:$TRAVIS_BRANCH-$TRAVIS_BUILD_NUMBER $DOCKER_USERNAME/worker_uploader_import_completed:$TRAVIS_BRANCH-$TRAVIS_BUILD_NUMBER;
+            docker tag worker_uploader_import_completed:$TRAVIS_BRANCH-$TRAVIS_BUILD_NUMBER $DOCKER_USERNAME/worker_uploader_import_completed:staging;
+            docker images;
+            docker push $DOCKER_USERNAME/worker_uploader_import_completed:$TRAVIS_BRANCH-$TRAVIS_BUILD_NUMBER;
+            docker push $DOCKER_USERNAME/worker_uploader_import_completed:staging;
         else
             docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD";
             docker build -t worker_uploader_import_completed:qa .;
