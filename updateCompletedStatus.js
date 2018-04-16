@@ -48,6 +48,11 @@ process.on('unhandledRejection', (reason, p) => {
 
 const objQ = new rfqQueue(rethinkDBConnection, queueOption)
 
+objQ.on('error', (err) => {
+  console.log('Queue Id: ' + err.queueId)
+  console.error(err)
+})
+
 function getJobQueue () {
   objQ.process(async (job, next) => {
     try {
