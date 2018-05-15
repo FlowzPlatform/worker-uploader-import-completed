@@ -48,6 +48,11 @@ process.on('unhandledRejection', (reason, p) => {
 
 const objQ = new rfqQueue(rethinkDBConnection, queueOption)
 
+objQ.on('error', (err) => {
+  console.log('Queue Id: ' + err.queueId)
+  console.error(err)
+})
+
 function getJobQueue () {
   objQ.process(async (job, next) => {
     try {
@@ -106,12 +111,13 @@ let doJob = async function (objWorkJob, next) {
 }
 
 async function connectRethinkDB (cxnOptions) {
-  return new Promise((resolve, reject) => {
+  return new Promise(async (resolve, reject) => {
     console.log("connction object", cxnOptions)
-    rethink.connect(cxnOptions, function (err, conn) {
+    rethink.connect(cxnOptions, async function (err, conn) {
       if (err) {
         console.log("connection error", err)
-        // connectRethinkDB(cxnOptions)
+        let conn1 = await connectRethinkDB(cxnOptions)
+        resolve(conn1)
       } else {
         resolve(conn)
       }
@@ -121,7 +127,7 @@ async function connectRethinkDB (cxnOptions) {
 
 function updateImportTrackerStatus (trackerId) {
   return new Promise(async (resolve, reject) => {
-    //let rethinkDbConnectionObj = await connectRethinkDB (rethinkDBConnection)
+    rethinkDbConnectionObj = await connectRethinkDB (rethinkDBConnection)
     rethink.db(rethinkDBConnection.db).table(rethinkDBConnection.table)
     .filter({'id': trackerId})
     .update({stepStatus: ImportCompleted, masterJobStatus: masterJobStatusCompleted})
@@ -213,7 +219,7 @@ async function getImportTrackerDetails (objWorkJob) {
   return new Promise(async (resolve, reject) => {
     try {
       // console.log("===========getImportTrackerDetails============1", rethinkDBConnection)
-      let rethinkDbConnectionObj = await connectRethinkDB (rethinkDBConnection)
+      rethinkDbConnectionObj = await connectRethinkDB (rethinkDBConnection)
       // console.log("===========rethink conn obj created============",objWorkJob.data)
       let importData = await findImportTrackerData(rethinkDbConnectionObj, rethinkDBConnection.db, rethinkDBConnection.table, objWorkJob.data.importTrackerId)
       // console.log("===========treaker Data============", importData)
