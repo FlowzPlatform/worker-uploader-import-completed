@@ -6,6 +6,7 @@ const extend = require('util')._extend
 let _ = require('underscore')
 
 let rethinkDBConnection = extend({}, config.get('rethinkDBConnection'))
+let uploaderService = '';
 if (process.env.rdbHost !== undefined && process.env.rdbHost !== '') {
   rethinkDBConnection.host = process.env.rdbHost
 }
@@ -26,6 +27,11 @@ if (process.env.esPort !== undefined && process.env.esPort !== '') {
 if (process.env.esAuth !== undefined && process.env.esAuth !== '') {
   ESConnection.auth = process.env.esAuth
 }
+
+if (process.env.uploaderService !== undefined && process.env.uploaderService !== '') {
+  uploaderService = process.env.uploaderService
+}
+// console.log('uploaderService', uploaderService)
 
 let queueOption = {
   name: 'uploaderJobQueConfirm'
@@ -78,6 +84,7 @@ let doJob = async function (objWorkJob, next) {
     if (!objWorkJob.data) {
       return next(new Error('no job data'), objWorkJob)
     }
+    // console.log('::::::::::::::::::::::: objWorkJob:: ', objWorkJob.data)
     let importTrackerValue = await getImportTrackerDetails(objWorkJob)
     console.log('==============importTrackerValue=====', importTrackerValue)
     if (importTrackerValue !== undefined) {
@@ -85,7 +92,7 @@ let doJob = async function (objWorkJob, next) {
       await getUserRequestResponse(objWorkJob)
         .then(async (result) => {
           console.log('==========userDataPrepared=result=====', result)
-          await updateImportTrackerStatus(objWorkJob.data.importTrackerId)
+          await updateImportTrackerStatus(objWorkJob.data.importTrackerId,objWorkJob.data.userdetails.id, objWorkJob.data.syncOn)
             .then((result) => {
               next(null, 'success')
               resolve('success')
@@ -125,17 +132,45 @@ async function connectRethinkDB (cxnOptions) {
   })
 }
 
-function updateImportTrackerStatus (trackerId) {
+function updateImportTrackerStatus (trackerId, userid, syncOn) {
   return new Promise(async (resolve, reject) => {
     rethinkDbConnectionObj = await connectRethinkDB (rethinkDBConnection)
     rethink.db(rethinkDBConnection.db).table(rethinkDBConnection.table)
     .filter({'id': trackerId})
     .update({stepStatus: ImportCompleted, masterJobStatus: masterJobStatusCompleted})
-    .run(rethinkDbConnectionObj, function (err, cursor) {
+    .run(rethinkDbConnectionObj, async function (err, cursor) {
       if (err) {
         reject(err)
       } else {
-        resolve(ImportCompleted + ' status updated')
+        if (syncOn != '') {
+          await findVirtualShopData(rethinkDbConnectionObj, rethinkDBConnection.vshopdb, rethinkDBConnection.vshoptable, userid).then(async res => {
+            console.log('res.........................', res, syncOn)
+            let vid = res;
+            let productSyncUrl = uploaderService + '/product-sync';
+            let mdata = {
+              "syncOn": syncOn,
+              "no-product-process": 0,
+              "vid": vid
+            };
+            await rpRequest({
+              method: 'POST',
+              uri: productSyncUrl,
+              body: mdata,
+              json: true
+            }).then(resp => {
+              console.log(syncOn + ' Started -->' + resp.id)
+            }).catch(err => {
+              console.log('Error ::', err);
+              reject(err)
+            })
+            resolve(ImportCompleted + ' status updated')
+
+          }).catch(err => {
+            reject(err)
+          })
+        } else {
+          resolve(ImportCompleted + ' status updated')          
+        } 
       }
     })
   })
@@ -247,6 +282,37 @@ async function findImportTrackerData (rconnObj, rdb, rtable, findVal) {
               resolve(result[0]);
             }
         });
+        // resolve(JSON.stringify(result, null, 2))
+      }
+    })
+  })
+}
+
+
+// rethinkDbConnectionObj = await connectRethinkDB(rethinkDBConnection)
+// let isUserNotExist = await findVirtualShopData(rethinkDbConnectionObj, rethinkDBConnection.vshopdb, rethinkDBConnection.vshoptable, username, userObject)
+
+async function findVirtualShopData (rconnObj, rdb, rtable, username) {
+  return new Promise(async (resolve, reject) => {
+    console.log('================findVal=========', username)
+    rethink.db(rdb).table(rtable)
+    .filter({'esUser': username,'userType': 'supplier'})
+    .run(rconnObj, function (err, cursor) {
+      if (err) {
+        reject(err)
+      } else {
+        cursor.toArray(function (err, result) {
+          console.log('result>>>>>>>>>>>>', result)
+          if (err) {
+            reject(err)
+          } else {
+            if (result.length <= 0) {
+              reject(err)
+            } else {
+              resolve(result[0].id)
+            }
+          }
+        })
         // resolve(JSON.stringify(result, null, 2))
       }
     })
