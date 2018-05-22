@@ -6,7 +6,7 @@ const extend = require('util')._extend
 let _ = require('underscore')
 
 let rethinkDBConnection = extend({}, config.get('rethinkDBConnection'))
-let uploaderService = '';
+let uploaderService = 'http://localhost:3040';
 if (process.env.rdbHost !== undefined && process.env.rdbHost !== '') {
   rethinkDBConnection.host = process.env.rdbHost
 }
@@ -28,10 +28,10 @@ if (process.env.esAuth !== undefined && process.env.esAuth !== '') {
   ESConnection.auth = process.env.esAuth
 }
 
-if (process.env.uploaderService !== undefined && process.env.uploaderService !== '') {
-  uploaderService = process.env.uploaderService
+if (process.env.domainKey !== undefined) {
+  uploaderService = 'https://api.' + process.env.domainKey + '/uploader';
 }
-// console.log('uploaderService', uploaderService)
+console.log('uploaderService', uploaderService)
 
 let queueOption = {
   name: 'uploaderJobQueConfirm'
