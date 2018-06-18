@@ -148,10 +148,22 @@ function updateImportTrackerStatus (trackerId, userid, syncOn) {
             let vid = res;
             let productSyncUrl = uploaderService + '/product-sync';
             let mdata = {
-              "syncOn": syncOn,
+              // "syncOn": syncOn,
               "no-product-process": 0,
               "vid": vid
             };
+            if (syncOn == 'ASI') {
+              mdata.asiStatus = 'initiated'
+              mdata.asiError = []
+            } else if (syncOn == 'SAGE') {
+              mdata.sageStatus = 'initiated'
+              mdata.sageError = []
+            } else {
+              mdata.asiStatus = 'initiated'
+              mdata.asiError = []
+              mdata.sageStatus = 'initiated'
+              mdata.sageError = []
+            }
             await rpRequest({
               method: 'POST',
               uri: productSyncUrl,
