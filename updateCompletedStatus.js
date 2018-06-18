@@ -153,12 +153,15 @@ function updateImportTrackerStatus (trackerId, userid, syncOn) {
               "vid": vid
             };
             if (syncOn == 'ASI') {
+              mdata.syncOn = 'ASI'
               mdata.asiStatus = 'initiated'
               mdata.asiError = []
             } else if (syncOn == 'SAGE') {
+              mdata.syncOn = 'SAGE'
               mdata.sageStatus = 'initiated'
               mdata.sageError = []
             } else {
+              mdata.syncOn = 'BOTH'
               mdata.asiStatus = 'initiated'
               mdata.asiError = []
               mdata.sageStatus = 'initiated'
